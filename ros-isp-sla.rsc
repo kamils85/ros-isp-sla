@@ -87,7 +87,7 @@
         :put ("---  ---> Secondary ISP quality is worst than Primary")
         :put ("---  ---> Switching to Secondary ISP Canceled!")
         :put ("---  ---> Sent = " . $probes . ", Received = " . $succPingsSecondary)
-        :log error ("Switching to secondary ISP Canceled! Sent = " . $probes . ", Received = " . $succPingsSecondary)
+        :log error ("Primary ISP Fail! Switching to secondary ISP Canceled! Sent = " . $probes . ", Received = " . $succPingsSecondary)
         :error ("Switching to secondary ISP Canceled! Sent = " . $probes . ", Received = " . $succPingsSecondary);
     } else={
         # check if secondary isp is already active
