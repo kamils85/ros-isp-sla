@@ -2,15 +2,13 @@
 # Primary ISP default route should be set to AD = 4
 # Secondary ISP default route should be set to AD = 6
 #
-# ### todo: describe vars
 # Vars:
-# gwPrimary - 
-# gwSecondary
-# gwSecondaryAD 
-# gwFailoverAD
-# succPings
-# succPings - 
-# probes - 
+# gwPrimary - Primary ISP gateway ip address
+# gwSecondary - Secondary ISP gateway ip address
+# gwSecondaryAD - Secondary ISP gateway route distance
+# gwFailoverAD - Failover AD distance. We change default route to secondary ISP by rising 0.0.0.0/0 distance
+# succPings - Amount of successful pings returned in ping check
+# probes - Amount of pings sent to check gateway reliability
 # threshold - if successfull amount of pings is less than threshold value - try to switch to secondary ISP
 
 :local gwPrimary 86.0.0.1;
