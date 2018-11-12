@@ -108,7 +108,7 @@
     :local gatewaySecondaryParams ([/ip route print as-value where dst-address=0.0.0.0/0 gateway=$gwSecondary])
     # check if secondary ISP route has its default distance
     :if ($gatewaySecondaryParams->0->"distance" = $gwSecondaryAD) do={
-        :put "Ok. Secondary ISP has its default distance.";
+        :put "> OK ---> Secondary ISP has its default distance.";
     # else set it to default value
     } else={
         :put "---  ---> Switching to Primary ISP"
