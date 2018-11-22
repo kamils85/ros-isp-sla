@@ -20,100 +20,106 @@
 :local threshold 8;
 
 # check, if routes exists --------------------------------------------------------------------
-:local gwPrimaryExists ([/ip route print as-value where dst-address=0.0.0.0/0 gateway=$gwPrimary])
-:local gwSecondaryExists ([/ip route print as-value where dst-address=0.0.0.0/0 gateway=$gwSecondary])
+:local gwPrimaryExists ([/ip route print as-value where dst-address=0.0.0.0/0 gateway=$gwPrimary]);
+:local gwSecondaryExists ([/ip route print as-value where dst-address=0.0.0.0/0 gateway=$gwSecondary]);
 
-:put "---  ---> Checking if default routes exists";
+:put ("---  ---> Checking if default routes exists");
 # check primary ISP default route
-:put "---  ---> Checking primary default route exists";
+:put ("---  ---> Checking primary default route exists");
 :if ([:len $gwPrimaryExists] > 0) do={
-    :put "> OK ---> Primary default route exists";
+    :put ("> OK ---> Primary default route exists");
 } else={
-    :put "> Fail -> Primary default route does not exists. Exiting.";
+    :put ("> Fail -> Primary default route does not exists. Exiting.");
     :log error "Script: Fail. Primary default route does not exists. Exiting.";
     :error "Primary default route does not exists. Exiting.";
 }
 
 # check secondary ISP default route
-:put "---  ---> Checking secondary default route exists";
+:put ("---  ---> Checking secondary default route exists");
 :if ([:len $gwSecondaryExists] > 0) do={
-    :put "> OK ---> Secondary default route exists";
+    :put ("> OK ---> Secondary default route exists");
 } else={
-    :put "> Fail -> Secondary default route does not exists. Exiting.";
+    :put ("> Fail -> Secondary default route does not exists. Exiting.");
     :log error "Script: Fail. Secondary default route does not exists. Exiting.";
     :error "Secondary default route does not exists. Exiting.";
 }
 
 # check, if routes are enabled (not disabled)------------------------------------------------------
-:local gwPrimaryEnabled ([/ip route print as-value where  dst-address=0.0.0.0/0 gateway=$gwPrimary disabled =no])
-:local gwSecondaryEnabled ([/ip route print as-value where  dst-address=0.0.0.0/0 gateway=$gwSecondary disabled =no])
+:local gwPrimaryEnabled ([/ip route print as-value where  dst-address=0.0.0.0/0 gateway=$gwPrimary disabled =no]);
+:local gwSecondaryEnabled ([/ip route print as-value where  dst-address=0.0.0.0/0 gateway=$gwSecondary disabled =no]);
 
-:put "---  ---> Checking default routes are not disabled";
+:put ("---  ---> Checking default routes are not disabled");
 # check primary ISP default route is enabled
-:put "---  ---> Checking primary default route is not disabled";
+:put ("---  ---> Checking primary default route is not disabled");
 :if ([:len $gwPrimaryEnabled] > 0) do={
-    :put "> OK ---> Primary default route is enabled";
+    :put ("> OK ---> Primary default route is enabled");
 } else={
-    :put "> Fail -> Primary default route is disabled. Exiting.";
+    :put ("> Fail -> Primary default route is disabled. Exiting.");
     :log error "Script: Fail. Primary default route is disabled. Exiting.";
     :error "Primary default route is disabled. Exiting.";
 }
 
 # check secondary ISP default route is enabled
-:put "---  ---> Checking primary default route is not disabled";
+:put ("---  ---> Checking primary default route is not disabled");
 :if ([:len $gwSecondaryEnabled] > 0) do={
-    :put "> OK ---> Secondary default route is enabled";
+    :put ("> OK ---> Secondary default route is enabled");
 } else={
-    :put "> Fail -> Secondary default route is disabled. Exiting.";
+    :put ("> Fail -> Secondary default route is disabled. Exiting.");
     :log error "Script: Fail. Secondary default route is disabled. Exiting.";
     :error "Secondary default route is disabled. Exiting.";
 }
 
 # running primary ISP ping check ---------------------------------------------------------------
-:put "---  ---> Checking Primary ISP quality:"
+:put ("---  ---> Checking Primary ISP quality:");
 # returns successful amount of probes
-:set succPings ([/ping $gwPrimary ttl=1 count=$probes])
-:put ("---  ---> Got: " . $succPings . " pings of: " . $probes)
+:set succPings ([/ping $gwPrimary ttl=1 count=$probes]);
+:put ("---  ---> Primary ISP check results:");
+:put ("---  ---> Sent = " . $succPings . ", Received = " . $probes);
 
 # if passed pings amount count is less than threshold, switch to secondary ISP
 :if ($succPings<$threshold) do={
-    :put ("---  ---> Successful amount of pings is: " . $succPings . " < than threshold of: " . $threshold);
+    :put ("---  ---> Primary ISP quality under threshold value of: " . $threshold);
+    :log warning ("Primary ISP Fail! Sent = " . $probes . ", Received = " . $succPings . ", Threshold = " . $threshold);
+    :put ("---  ---> Trying to switch to secondary ISP.")
+    :log info ("Trying to switch to secondary ISP");
 
     # checking secondary ISP quality
-    :put ("---  ---> Checking Secondary ISP quality")
-    :local succPingsSecondary ([/ping $gwSecondary ttl=1 count=$probes])
+    :put ("---  ---> Checking Secondary ISP quality:");
+    :local succPingsSecondary ([/ping $gwSecondary ttl=1 count=$probes]);
+    :put ("---  ---> Secondary ISP check results:");
+    :put ("---  ---> Sent = " . $succPings . ", Received = " . $probes);
+
     # if secondary ISP successful pings are under threshold, stay on Primary ISP
     :if ($succPingsSecondary<$threshold) do={
-        :put ("---  ---> Secondary ISP quality is worst than Primary")
-        :put ("---  ---> Switching to Secondary ISP Canceled!")
-        :put ("---  ---> Sent = " . $probes . ", Received = " . $succPingsSecondary)
-        :log error ("Primary ISP Fail! Switching to secondary ISP Canceled! Sent = " . $probes . ", Received = " . $succPingsSecondary)
-        :error ("Switching to secondary ISP Canceled! Sent = " . $probes . ", Received = " . $succPingsSecondary);
+        :put ("---  ---> Secondary ISP quality under threshold value of: " . $threshold);
+        :put ("---  ---> Switching to Secondary ISP Canceled!");
+        :log error ("Switching to secondary ISP Canceled! Sent = " . $probes . ", Received = " . $succPingsSecondary . ", Threshold = " . $threshold);
+        :error ("---  ---> Switching to secondary ISP Canceled! Sent = " . $probes . ", Received = " . $succPingsSecondary);
     } else={
         # check if secondary isp is already active
-        :local gatewaySecondaryParams ([/ip route print as-value where dst-address=0.0.0.0/0 gateway=$gwSecondary])
+        :local gatewaySecondaryParams ([/ip route print as-value where dst-address=0.0.0.0/0 gateway=$gwSecondary]);
         :if ($gatewaySecondaryParams->0->"distance" = $gwFailoverAD) do={
-            :put "> OK ---> Already running on Secondary ISP";
-            :log info ("Primary ISP Fail! Running on Secondary ISP!")
+            :put ("> OK ---> Already running on Secondary ISP");
+            :log info ("Primary ISP Fail! Running on Secondary ISP!");
         # increase secondary gateway distance
         } else={
-            [/ip route set distance=$gwFailoverAD [find gateway=$gwSecondary]]
-            :put "Switched to Secondary ISP!"
-            :log warning ("Primary ISP Fail! Switched to Secondary ISP!")
+            [/ip route set distance=$gwFailoverAD [find gateway=$gwSecondary]];
+            :put ("Switched to Secondary ISP!");
+            :log warning ("Primary ISP Fail! Switched to Secondary ISP!");
         }
     }
 # Primary ISP is Ok
 } else={
-    :put "> OK ---> Primary ISP is OK"
-    :local gatewaySecondaryParams ([/ip route print as-value where dst-address=0.0.0.0/0 gateway=$gwSecondary])
+    :put ("> OK ---> Primary ISP is OK");
+    :local gatewaySecondaryParams ([/ip route print as-value where dst-address=0.0.0.0/0 gateway=$gwSecondary]);
     # check if secondary ISP route has its default distance
     :if ($gatewaySecondaryParams->0->"distance" = $gwSecondaryAD) do={
-        :put "> OK ---> Secondary ISP has its default distance.";
+        :put ("> OK ---> Secondary ISP has its default distance.");
     # else set it to default value
     } else={
-        :put "---  ---> Switching to Primary ISP"
-        [/ip route set distance=$gwSecondaryAD [find dst-address=0.0.0.0/0 gateway=$gwSecondary]]
-        :put "> OK ---> Switched back to Primary ISP!"
-        :log info ("Switched back to Primary ISP!")
+        :put ("---  ---> Switching to Primary ISP");
+        [/ip route set distance=$gwSecondaryAD [find dst-address=0.0.0.0/0 gateway=$gwSecondary]];
+        :put ("> OK ---> Switched back to Primary ISP!");
+        :log info ("Primary ISP recovered! Switched back to Primary ISP.");
     }
 } 
